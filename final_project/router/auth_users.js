@@ -30,14 +30,60 @@ const authenticatedUser = (username,password)=>{
 
 //only registered users can login
 regd_users.post("/login", (req,res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+  const username = req.body.username;
+    const password = req.body.password;
+
+    if (!username || !password) {
+        return res.status(404).json({ message: "Error logging in" });
+    }
+
+    if (authenticatedUser(username, password)) {
+        let accessToken = jwt.sign({
+            data: password
+        }, 'access', { expiresIn: 60 * 60 });
+
+        req.session.authorization = {
+            accessToken, username
+        }
+        return res.status(200).send("User successfully logged in");
+    } else {
+        return res.status(208).json({ message: "Invalid Login. Check username and password" });
+    }
 });
 
 // Add a book review
 regd_users.put("/auth/review/:isbn", (req, res) => {
-  //Write your code here
-  return res.status(300).json({message: "Yet to be implemented"});
+  let isbn = req.params.isbn;
+  let user = req.session.authorization.username;
+  let review = req.body.review;
+  
+  if(!review)
+    return res.status(404).json({ message: "Review is empty" });
+
+  let reviews = books[isbn].reviews[user];
+
+  if (reviews) {
+    books[isbn].reviews[user].push(review);
+    return res.status(200).json({ message: "User has successfully added review to this book" });
+  } else {
+    books[isbn].reviews = {user: [].push(review)};
+    return res.status(200).json({ message: "User has successfully added review to this book" });
+  }
+  
+});
+
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+  let isbn = req.params.isbn;
+  let user = req.session.authorization.username;
+  
+  if(books[isbn].reviews[user]) {
+    books.filter(book => book.reviews[!user]);
+    return res.status(200).json({message: "Reviews updated successfully"});
+  } else {
+    return res.status(404).json({ message: "No reviews of current user found for this book" });
+  }
+  
+  
 });
 
 module.exports.authenticated = regd_users;
